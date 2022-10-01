@@ -1,6 +1,14 @@
 import { Controller, Get, Post, Query } from '@nestjs/common';
 import { Pet } from './entities/pet';
-import { FindManyOptions, FindOptionsWhere, InsertResult, Like, Repository } from 'typeorm';
+import {
+  Brackets,
+  FindManyOptions,
+  FindOptionsWhere,
+  InsertResult,
+  Like,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Owner } from './entities/owner';
 
@@ -33,8 +41,29 @@ export class AppController {
   }
 
   @Get('/querybuilder')
-  searchUsingQueryBuilder(): object {
-    return { hello: true };
+  async searchUsingQueryBuilder(@Query('search') search?: string) {
+    let query = this.petRepository.createQueryBuilder('p').innerJoinAndSelect('p.owner', 'o');
+
+    if (search?.length) {
+      const searchFormattedText = search.trim().split(' ');
+
+      query = query.andWhere(
+        new Brackets((queryPart: SelectQueryBuilder<Pet>) => {
+          for (const word of searchFormattedText) {
+            queryPart.orWhere('o.first_name like :firstName', {
+              firstName: `%${word}%`,
+            });
+            queryPart.orWhere('o.last_name like :lastName', {
+              lastName: `%${word}%`,
+            });
+          }
+        }),
+      );
+    }
+
+    const pets = await query.getMany();
+
+    return { pets };
   }
 
   @Post('/fakes')
