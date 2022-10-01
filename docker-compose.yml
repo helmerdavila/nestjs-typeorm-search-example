@@ -1,0 +1,29 @@
+version: '3.7'
+services:
+  mysql:
+    container_name: nestjs-database
+    image: 'mysql:8'
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: demo_db
+      MYSQL_USER: demouser
+      MYSQL_PASSWORD: demo
+    ports:
+      - 3306:3306
+  app:
+    container_name: nestjs-app
+    command: npm run start:dev
+    depends_on:
+      - mysql
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    ports:
+      - 3000:3000
+      - 9230:9229
+    restart: always
+    volumes:
+      - .:/application
+      - ./node_modules:/application/node_modules
+
